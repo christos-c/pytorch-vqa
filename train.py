@@ -52,7 +52,7 @@ def run(net, loader, optimizer, tracker, train=False, prefix='', epoch=0):
         a = Variable(a.cuda(async=True), **var_params)
         q_len = Variable(q_len.cuda(async=True), **var_params)
 
-        out = net(v, q, q_len)
+        out, attention = net(v, q, q_len)
         nll = -log_softmax(out)
         loss = (nll * a / 10).sum(dim=1).mean()
         acc = utils.batch_accuracy(out.data, a.data).cpu()

@@ -54,7 +54,7 @@ class Net(nn.Module):
 
         combined = torch.cat([v, q], dim=1)
         answer = self.classifier(combined)
-        return answer
+        return answer, a
 
 
 class Classifier(nn.Sequential):
