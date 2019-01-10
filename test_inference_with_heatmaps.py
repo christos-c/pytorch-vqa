@@ -118,6 +118,7 @@ if __name__ == '__main__':
     with open(questions_path, 'r') as fd:
         questions_json = json.load(fd)
     id_to_question = {q['question_id']: q['question'] for q in questions_json['questions']}
+    id_to_image_id = {q['question_id']: q['image_id'] for q in questions_json['questions']}
     with open(answers_path, 'r') as fd:
         answers_json = json.load(fd)
     id_to_answers = {ans_dict['question_id']: [process_punctuation(a['answer']) for a in ans_dict['answers']]
@@ -125,7 +126,7 @@ if __name__ == '__main__':
 
     # Load validation images dictionary
     val_images_path = '/home/chrchrs/vqa-data/val2014'
-    id_to_filename = {}
+    image_id_to_filename = {}
     for filename in os.listdir(val_images_path):
         if not filename.endswith('.jpg'):
             continue
@@ -134,7 +135,7 @@ if __name__ == '__main__':
             continue
         id_and_extension = filename.split('_')[-1]
         id = int(id_and_extension.split('.')[0])
-        id_to_filename[id] = filename
+        image_id_to_filename[id] = filename
 
     # Run the inference for all questions in the dataset and write out the heatmaps
     with open('%s/MultipleChoice_mscoco_val2014_output.tsv' % data_path, 'w') as out:
@@ -143,11 +144,12 @@ if __name__ == '__main__':
             # Skip questions we don't have gold answers for
             if q_id not in id_to_answers:
                 continue
+            image_id = id_to_image_id[q_id]
             # Skip questions we don't have images for
-            if q_id not in id_to_filename:
+            if image_id not in image_id_to_filename:
                 continue
 
-            image_path = '%s/%s' % (val_images_path, id_to_filename[q_id])
+            image_path = '%s/%s' % (val_images_path, image_id_to_filename[image_id])
             # Setup the image for inference
             pil_image = Image.open(image_path).convert('RGB')
             cropped_image = transform(pil_image)
@@ -155,6 +157,6 @@ if __name__ == '__main__':
             # Run the inference
             answer, attention = run(question, cropped_image)
             gold_answers = id_to_answers[q_id]
-            out.write('%s\t\%s\t%s\t%s\n' % (id_to_filename[q_id], question, answer, '\t'.join(gold_answers)))
+            out.write('%s\t%s\t%s\t%s\n' % (image_id_to_filename[image_id], question, answer, '\t'.join(gold_answers)))
 
             cv2.imwrite(image_path + '_hm.jpg', apply_attention_to_image(cropped_image, attention))
